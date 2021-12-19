@@ -163,7 +163,6 @@ class Proxy_Checker(Proxies):
     async def check_proxies(self):
         proxies = self.data['proxies']
         self.data['working_proxies'] = []
-
         with ThreadPoolExecutor(max_workers=50) as executor:
             loop = asyncio.get_event_loop()
             tasks = [

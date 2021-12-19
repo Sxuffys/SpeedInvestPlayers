@@ -114,8 +114,8 @@ def compute_difference(smallest, greatest):
     return difference
 
 
-player = get_data(url2)
-print(player.status_code)
+#player = get_data(url2)
+#print(player.status_code)
 #if player.status_code == 200:
 #    print("done")
 #    data = fetch_price(player)
@@ -136,7 +136,8 @@ send_proxies = "45.128.220.132:59394"
 
 url = 'https://github.com/corbanworks/aws-blocker'
 
-
+ua = UserAgent()
+print(ua.random)
 
 #gateway = ApiGateway(url1)
 #gateway.start()
@@ -147,7 +148,7 @@ url = 'https://github.com/corbanworks/aws-blocker'
 #
 #
 #scraper.mount(url1, gateway)
-cookies = dict(scraper.cookies)
+#cookies = dict(scraper.cookies)
 ##print(cookies)
 #user = UserAgent()
 #
