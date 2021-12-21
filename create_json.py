@@ -43,10 +43,15 @@ def creating_header():
 
 def player_pager():
     data = {}
-    data['page_urls'] = []
+    data['not_fetched_page_urls'] = []
     for page in range(1, 58):
-        data['page_urls'].append(f'https://www.futbin.com/players?page={page}&ps_price=0-5000&version=gold')
+        data['not_fetched_page_urls'].append(f'https://www.futbin.com/players?page={page}&ps_price=0-5000&version=gold')
+    data['fetched_page_urls'] = []
+    data['player_prices'] = []
     data['player_urls'] = []
+    data['player_ids'] = []
+    data['player_prices'] = []
+    data['not_fetched_graph_urls'] = []
     save_json(data, 'json_data/player_urls.json')
 
 '''
@@ -62,6 +67,6 @@ def creating_to_scrap():
 '''
 
 if __name__ == "__main__":
-    creating_header()
+    #creating_header()
     player_pager()
 

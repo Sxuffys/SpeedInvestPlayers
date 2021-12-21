@@ -11,11 +11,12 @@ import user_agents
 from fake_useragent import UserAgent
 import certifi
 import urllib3
+import undetected_chromedriver.v2 as uc
 import requests_html
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
-import undetected_chromedriver as uc
 from selenium import webdriver
+import cfscrape
 
 
 url1 = 'https://www.futbin.com/22/playerGraph?type=today&year=22&player=151227355&set_id=120'
@@ -25,6 +26,8 @@ url4 = "https://api.scrapingrobot.com/?responseType=json&waitUntil=load&noScript
 url5 = 'https://www.chefkoch.de'
 url6 = 'https://www.futbin.com/'
 scraper = cloudscraper.CloudScraper()
+scraper.trust_env = False
+
 
 http = urllib3.PoolManager(
 
@@ -47,23 +50,21 @@ proxies = {
 
 def get_data(source):
     req, gateway = helper(source)
-    if req.status_code != 200:
+    if req.status_code == 403:
         print(req.status_code)
         gateway.shutdown()
-        get_data(source)
-    return req
+        #get_data(source)
+        return req
 
 
 def helper(source):
-    options = webdriver.ChromeOptions()
-    options.add_argument("start-maximized")
-    driver = uc.Chrome(options=options)
     gateway = ApiGateway(source)
     gateway.start()
-    driver.mount(source, gateway)
+    scraper.mount(source, gateway)
     #cookies = dict(scraper.cookies)
-    req = driver.get(source, proxies=proxies)
-    return req, gateway
+    req = scraper.get(source)
+    gateway.shutdown()
+    return req
 
 
 def fetch_price(player_data):
@@ -114,7 +115,9 @@ def compute_difference(smallest, greatest):
     return difference
 
 
-#player = get_data(url2)
+#player = helper(url2)
+#soup = BeautifulSoup(player.text, 'html.parser')
+#print(soup)
 #print(player.status_code)
 #if player.status_code == 200:
 #    print("done")
@@ -129,33 +132,182 @@ def compute_difference(smallest, greatest):
 #    print(player.text)
 #    print("Captcha triggered")
 
-send_header = {
-               'user-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux armv7l; rv:17.0) Gecko/20100101 Firefox/17.0'}
+def return_header():
+    ua = UserAgent()
+    chrome = ua.chrome
+    splitted = chrome.split('/')
+    version = splitted[3][:2]
+    header = {
+        'authority': 'www.futbin.com',
+        'method': 'GET',
+        'path': '/22/players?page=1&ps_price=0-5000&version=gold',
+        'scheme': 'https',
+        'accept': 'application/json, text/javascript, */*; q=0.01',
+        'accept-encoding': 'gzip, deflate, br',
+        'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
+        'referer': 'https://www.futbin.com/',
+        'sec-ch-ua': f'"Not A;Brand";v="99", "Chromium";v="{version}", "Google Chrome";v="{version}"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': str(chrome),
+        'x-requested-with': 'XMLHttpRequest'
+    }
+    return header
 
 send_proxies = "45.128.220.132:59394"
 
-url = 'https://github.com/corbanworks/aws-blocker'
+urls = [
+        "https://www.futbin.com/players?page=1&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=2&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=3&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=4&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=5&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=6&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=7&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=8&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=9&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=10&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=11&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=12&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=13&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=14&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=15&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=16&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=17&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=18&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=19&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=20&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=21&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=22&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=23&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=24&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=25&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=26&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=27&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=28&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=29&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=30&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=31&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=32&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=33&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=34&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=35&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=36&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=37&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=38&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=39&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=40&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=41&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=42&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=43&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=44&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=45&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=46&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=47&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=48&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=49&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=50&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=51&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=52&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=53&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=54&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=55&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=56&ps_price=0-5000&version=gold",
+        "https://www.futbin.com/players?page=57&ps_price=0-5000&version=gold"
+    ]
 
-ua = UserAgent()
-print(ua.random)
+fetched = []
 
-#gateway = ApiGateway(url1)
-#gateway.start()
-## Assign gateway to session
-#session = requests.session()
-##adapter = session.get_adapter(url=url1)
-##session.cert
-#
-#
-#scraper.mount(url1, gateway)
-#cookies = dict(scraper.cookies)
-##print(cookies)
-#user = UserAgent()
-#
-## Send request (IP will be randomised)
-#response = scraper.get(url1, headers=headers)
-#print(response.status_code)
-##print(response.text)
 
-# Delete gateways
-#gateway.shutdown()
+def fetch(url, gate):
+    try:
+        header = return_header()
+        ua = header['user-agent']
+        scraper1 = cloudscraper.create_scraper(interpreter='nodejs', delay=10)
+        scraper1.trust_env = False
+        scraper1.mount(url6, gate)
+        with scraper1.get(url, timeout=15, headers=header) as response:
+            if response.status_code == 200:
+                print('Gottcha')
+                urls.remove(url)
+                fetched.append(url)
+                return response
+            else:
+                print('Captcha')
+                return '0'
+    except Exception as E:
+        print(E)
+        return '0'
+
+
+#used = 0
+#gate = ApiGateway(url6)
+#gate.start()
+#for url1 in urls:
+#    if used <= 5:
+#        fetch(url1, gate)
+#        used += 1
+#    else:
+#        gate.shutdown()
+#        used = 0
+#        gate = ApiGateway(url6)
+#        gate.start()
+#        fetch(url1, gate)
+
+url = 'https://www.futbin.com/players?page=1'
+headers1 = {'Authority': 'www.futbin.com',
+'Method': 'GET',
+'Path': '/players?page=1',
+'Scheme': 'https',
+'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+'Accept-Encoding': 'gzip, deflate, br',
+'Accept-Language': 'es-ES,es;q=0.9',
+'Cache-Control': 'max-age=0',
+'Cookie': 'pc=true; ps=true; xbox=true; cookieconsent_status=dismiss; PHPSESSID=4ijtnhr6vacmjp1ppg9e57q280; theme_player=true; comments=true; platform=ps4',
+'Referer': 'https://www.futbin.com/',
+'Sec-CH-UA': '" Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"',
+'Sec-CH-UA-Mobile': '?0',
+'Sec-CH-UA-Platform': '"Windows"',
+'Sec-Fetch-Dest': 'document',
+'Sec-Fetch-Mode': 'navigate',
+'Sec-Fetch-Site': 'same-origin',
+'Sec-Fetch-User': '?1',
+'Upgrade-Insecure-Requests': '1',
+'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36'}
+
+gate = ApiGateway(url6)
+gate.start()
+scraper = cloudscraper.CloudScraper(delay=10)
+scraper.trust_env = False
+scraper.mount(url6, gate)
+r = scraper.get(url, timeout=10, headers=headers1)
+while r.status_code != 200:
+    if r.status_code == 200:
+        print(r.cookies.get_dict())
+    else:
+        r = scraper.get(url, timeout=10, headers=headers1)
+        time.sleep(1)
+        print('c')
+if r.status_code == 200:
+    print(r.cookies.get_dict())
+
+h = {'Date': 'Tue, 21 Dec 2021 14:51:23 GMT',
+     'Content-Type': 'text/html; charset=UTF-8',
+     'Content-Length': '24959',
+     'Connection': 'keep-alive',
+     'x-amzn-RequestId': 'e6d25464-6db4-4933-9c9f-a8103b3881ab',
+     'CF-RAY': '6c11eda0ebcedfe7-FRA',
+     'access-control-allow-origin': '*',
+     'Expect-CT': 'max-age=604800,'' report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"',
+    'Content-Encoding': 'gzip',
+     'CF-Cache-Status': 'DYNAMIC',
+     'x-amzn-Remapped-Connection': 'keep-alive',
+     'x-amz-apigw-id': 'KtF82HGdliAFjxw=',
+     'vary': 'Accept-Encoding',
+     'x-amzn-Remapped-Server': 'cloudflare',
+     'x-powered-by': 'PHP/7.2.22',
+     'x-amzn-Remapped-Date': 'Tue, 21 Dec 2021 14:51:23 GMT'}
+
