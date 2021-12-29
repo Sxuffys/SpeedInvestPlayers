@@ -1,5 +1,4 @@
 # Imports
-import cfscrape
 import cloudscraper
 from bs4 import BeautifulSoup
 import requests, re, random, os, time
@@ -9,41 +8,29 @@ import json
 import logging
 from requests_ip_rotator import ApiGateway
 from fake_useragent import UserAgent
-from yggtorrentscraper import YggTorrentScraperSelenium
-from selenium import webdriver
+from datetime import date, timedelta
 
 
+class Price:
+    def __init__(self,
+                 header_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json',
+                 player_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_urls.json',
+                 hourly_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\hourly_prices.json',
+                 id_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_ids.json'):
 
-h = {'Date': 'Tue, 21 Dec 2021 14:51:23 GMT',
-     'Content-Type': 'text/html; charset=UTF-8',
-     'Content-Length': '24959',
-     'Connection': 'keep-alive',
-     'x-amzn-RequestId': 'e6d25464-6db4-4933-9c9f-a8103b3881ab',
-     'CF-RAY': '6c11eda0ebcedfe7-FRA',
-     'access-control-allow-origin': '*',
-     'Expect-CT': 'max-age=604800,'' report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"',
-    'Content-Encoding': 'gzip',
-     'CF-Cache-Status': 'DYNAMIC',
-     'x-amzn-Remapped-Connection': 'keep-alive',
-     'x-amz-apigw-id': 'KtF82HGdliAFjxw=',
-     'vary': 'Accept-Encoding',
-     'x-amzn-Remapped-Server': 'cloudflare',
-     'x-powered-by': 'PHP/7.2.22',
-     'x-amzn-Remapped-Date': 'Tue, 21 Dec 2021 14:51:23 GMT'}
-
-class Proxies:
-    def __init__(self, header_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json',
-                 player_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_urls.json'):
-
+        self.hourly_file = hourly_file
         self.header_file = header_file  # To save Location of where you have saved Json File
         self.player_file = player_file
+        self.id_file = id_file
         self.header_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json', 'r'))
         self.player_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_urls.json', 'r'))
+        self.id_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_ids.json', 'r'))
+        self.hourly_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\hourly_prices.json', 'r'))
         self.def_logger()
         self.gateways = 0
-        self.count_gate = 0
+        self.total_requests = 0
 
-    # Definign Logger for this class
+    # Defining Logger for this class
     def def_logger(self):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -66,7 +53,6 @@ class Proxies:
             'accept': 'application/json, text/javascript, */*; q=0.01',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-            #'Cookie': 'pc=true; ps=true; xbox=true; cookieconsent_status=dismiss; PHPSESSID=4ijtnhr6vacmjp1ppg9e57q280; theme_player=true; comments=true; platform=ps4',
             'referer': 'https://www.futbin.com/',
             'sec-ch-ua': f'"Not A;Brand";v="99", "Chromium";v="{version}", "Google Chrome";v="{version}"',
             'sec-ch-ua-mobile': '?0',
@@ -80,58 +66,83 @@ class Proxies:
         return header
 
     # To save json data in disk
-    def save_data(self):
+    def save_url_data(self):
         with open(self.player_file, 'w') as outfile:
             json.dump(self.player_data, outfile, indent=4)
 
-class proxy_checker(Proxies):
+    def save_id_data(self):
+        with open(self.id_file, 'w') as outfile:
+            json.dump(self.id_data, outfile, indent=4)
+
+    def save_price_data(self):
+        with open(self.hourly_file, 'w') as outfile:
+            json.dump(self.hourly_data, outfile, indent=4)
+
+
+class PriceScraper(Price):
     def __init__(self):
-        Proxies.__init__(self)
+        Price.__init__(self)
         self.check_url = 'https://www.futbin.com/22/playerGraph?type=yesterday&year=22&player=158023&set_id='
         self.zero_to_fiveK = 'https://www.futbin.com/players?page=1&ps_price=0-5000&version=gold'
         self.url = 'https://www.futbin.com/'
         self.rejects = 0
-        self.h = {'authority': 'www.futbin.com', 'method': 'GET', 'scheme': 'https', 'accept': 'application/json, text/javascript, */*; q=0.01', 'accept-encoding': 'gzip, deflate, br', 'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7', 'referer': 'https://www.futbin.com/', 'sec-ch-ua': '"Not A;Brand";v="99", "Chromium";v="34", "Google Chrome";v="34"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Windows"', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/4E423F', 'x-requested-with': 'XMLHttpRequest'}
-        self.cookie = {'PHPSESSID': 'cfb7149380441468e88b73eb903febff', 'comments': 'true', 'platform': 'ps4', 'theme_player': 'true'}
+        self.working_header = {'authority': 'www.futbin.com', 'method': 'GET', 'scheme': 'https', 'accept': 'application/json, text/javascript, */*; q=0.01', 'accept-encoding': 'gzip, deflate, br', 'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7', 'referer': 'https://www.futbin.com/', 'sec-ch-ua': '"Not A;Brand";v="99", "Chromium";v="34", "Google Chrome";v="34"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Windows"', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/4E423F', 'x-requested-with': 'XMLHttpRequest'}
+        self.working_cookie = {'PHPSESSID': 'cfb7149380441468e88b73eb903febff', 'comments': 'true', 'platform': 'ps4', 'theme_player': 'true'}
+
+    async def create_cookie_token(self, gate):
+        try:
+            scraper = cloudscraper.create_scraper(interpreter='nodejs')
+            scraper.trust_env = False
+            scraper.mount(self.url, gate)
+            header = self.return_header()
+            with scraper.get(self.url, timeout=10, headers=header) as response:
+                time.sleep(random.randint(0, 1))
+                if response.status_code == 200:
+                    self.working_cookie = response.cookies.get_dict()
+                    self.working_header = header
+                    self.logger.info(f'Got working cookie-> {self.working_cookie}: with header -> {self.working_header}')
+                    return True
+                else:
+                    self.logger.warning(f'Could not create Cookie Error -> {response.status_code}')
+                    return False
+        except Exception as E:
+            self.logger.warning(E)
+
+    async def create_gateway(self):
+        try:
+            gateway = ApiGateway(self.url)
+            gateway.start()
+            self.gateways += 1
+            return gateway
+        except Exception as E:
+            self.logger.warning(E)
 
     def fetch(self, url, gate):
         try:
             time.sleep(random.randint(0, 5))
-            header = self.return_header()
-            ua = header['user-agent']
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             scraper.trust_env = False
             scraper.mount(self.url, gate)
-            with scraper.get(url, timeout=10, headers=self.h, cookies=self.cookie) as response:
+            with scraper.get(url, timeout=10, headers=self.working_header, cookies=self.working_cookie) as response:
                 if response.status_code == 200:
-                    print(response.cookies.get_dict())
-                    print(header)
-                    self.logger.info('SuccessFul Proxy-> {}'.format(response.status_code))
+                    self.total_requests += 1
+                    self.logger.info(f'Successfully fetched -> {response.status_code}')
                     self.player_data['fetched_page_urls'].append(url)
-                    self.player_data['not_fetched_page_urls'].remove(url)
+                    #self.player_data['not_fetched_page_urls'].remove(url)
                     return response
                 else:
-                    #if retries > 0:
-                    #    self.fetch(url, gate, retries - 1)
-                    self.logger.warning('Status Code {} Captcha Triggered'.format(response.status_code))
+                    self.logger.warning(f'Status Code {response.status_code} Captcha Triggered')
                     return '0'
         except Exception as E:
-            print(E)
-            self.logger.warning('Timeout Proxy-> {}'.format(E))
+            self.logger.warning(f'Error: {E}')
             return '0'
 
     async def fetch_urls(self):
-        urls = []
-        for url in self.player_data['not_fetched_page_urls']:
-            urls.append(url)
-        while self.player_data['not_fetched_page_urls']:
-            time.sleep(1)
-            #five_urls = urls[:5]
-            #for i in range(0, 4):
-            #    urls.pop(i)
-            length = len(self.player_data['not_fetched_page_urls'])
-            print(length)
+        try:
             gate = await self.create_gateway()
+            ret = await self.create_cookie_token(gate)
+            while not ret:
+                ret = await self.create_cookie_token(gate)
             with ThreadPoolExecutor(max_workers=57) as executor:
                 loop = asyncio.get_event_loop()
                 tasks = [
@@ -146,106 +157,147 @@ class proxy_checker(Proxies):
                     for link in players:
                         p = link.get('data-url')
                         self.player_data['player_urls'].append(p)
-
-    def async_get_proxies(self):
-        try:
-            self.loop = asyncio.get_event_loop()
-            self.loop.set_debug(True)
-            future = asyncio.ensure_future(self.fetch_urls())
-            self.loop.run_until_complete(future)
-        except Exception as E:
-            self.logger.warning(E)
-        finally:
-            self.loop.close()
-
-    async def create_gate_list(self, length):
-        gates = []
-        for i in range(length//5 + 1):
-            gates.append(await self.create_gateway())
-            time.sleep(2)
-        return gates
-
-    # TODO: SEE THIS ____________________________________________________________________
-    async def create_gateway(self):
-        try:
-            gateway = ApiGateway(self.url)
-            gateway.start()
-            self.gateways += 1
-            return gateway
+            print('done fetching urls')
+            self.save_url_data()
         except Exception as E:
             self.logger.warning(E)
 
-    def get_ids(self):
-        for url in self.player_data['player_urls']:
-            s = url.split("/")
-            pid = s[3]
-            self.player_data['player_ids'].append(pid)
-
-    def get_graph_url(self):
-        for player_id in self.player_data['player_ids']:
-            today_hourly_url = f'https://www.futbin.com/22/playerGraph?type=today&year=22&player={player_id}&set_id='
-            yesterday_hourly_url = f'https://www.futbin.com/22/playerGraph?type=yesterday&year=22&player={player_id}&set_id='
-            da_yesterday_hourly_url = f'https://www.futbin.com/22/playerGraph?type=da_yesterday&year=22&player={player_id}&set_id='
-            urls = [today_hourly_url, yesterday_hourly_url, da_yesterday_hourly_url]
-            self.player_data['not_fetched_graph_urls'].append(urls)
-
-    def fetch_g(self, url, i):
+    def fetch_id(self, names_and_ids, gate, i):
         try:
-            scraper = cloudscraper.CloudScraper()
+            url = f'https://www.futbin.com/22/getTp?pid={names_and_ids[i][0]}&type=player'
+            time.sleep(random.randint(0, 5))
+            scraper = cloudscraper.create_scraper(interpreter='nodejs')
             scraper.trust_env = False
-            scraper.mount(self.url, self.gateway)
-            with scraper.get(url, timeout=10, headers=self.return_header()) as response:
+            scraper.mount(self.url, gate)
+            with scraper.get(url, timeout=10, headers=self.working_header, cookies=self.working_cookie) as response:
                 if response.status_code == 200:
-                    self.logger.info('SuccessFul Proxy-> {}'.format(response.status_code))
-                    self.player_data['not_fetched_graph_urls'][i].remove(url)
-                    if len(self.player_data['not_fetched_graph_urls'][i]) == 0:
-                        self.player_data['not_fetched_graph_urls'].pop(i)
-                    self.gateway.shutdown()
-                    return response
+                    self.total_requests += 1
+                    name = names_and_ids[i][1]
+                    ea_id = names_and_ids[i][0]
+                    futbin_id = response.json()['data']['g'][1]
+                    self.logger.info(f'Successfully fetched -> {response.status_code}')
+                    self.player_data['player_urls'].remove(names_and_ids[i][2])
+                    #{ea_id: {str(date.today()): ps}}
+                    return {"Name": name, "ea_id": ea_id, "futbin_id": futbin_id}
                 else:
-                    self.gateway.shutdown()
-                    self.logger.warning('Status Code {} Captcha Triggered'.format(response.status_code))
+                    self.logger.warning(f'Status Code {response.status_code}: Captcha Triggered')
                     return '0'
         except Exception as E:
-            print(E)
-            self.gateway.close()
-            self.logger.warning('Timeout Proxy-> {}'.format(E))
+            self.logger.warning(f'Error: {E}')
             return '0'
 
-    async def fetch_graph(self):
-        while self.player_data['not_fetched_graph_urls']:
-            self.create_gateway()
-            for i in range(len(self.player_data['not_fetched_graph_urls'])):
-                with ThreadPoolExecutor(max_workers=50) as executor:
+    async def fetch_ids(self):
+        names_ids = []
+        for url in self.player_data['player_urls']:
+            s = url.split('/')
+            id = s[3]
+            name = s[4]
+            names_ids.append((id, name, url))
+        while self.player_data['player_urls']:
+            gate = await self.create_gateway()
+            ret = await self.create_cookie_token(gate)
+            while not ret:
+                ret = await self.create_cookie_token(gate)
+            with ThreadPoolExecutor(max_workers=100) as executor:
+                loop = asyncio.get_event_loop()
+                tasks = [
+                    loop.run_in_executor(executor, self.fetch_id, names_ids, gate, i)
+                    for i in range(0, len(names_ids))
+                ]
+            gate.shutdown()
+            for response in await asyncio.gather(*tasks):
+                if response != 0:
+                    self.id_data['ids'].append(response)
+        print('Done fetching ids')
+        self.save_id_data()
+
+    def return_hourly_link(self, num, futbin_id):
+        if num == 0:
+            return f'https://www.futbin.com/22/playerGraph?type=today&year=22&player={futbin_id}&set_id='
+        elif num == 1:
+            return f'https://www.futbin.com/22/playerGraph?type=yesterday&year=22&player={futbin_id}&set_id='
+        else:
+            return f'https://www.futbin.com/22/playerGraph?type=da_yesterday&year=22&player={futbin_id}&set_id='
+
+    def fetch_price(self, data, gate):
+        try:
+            url = data[0]
+            ea_id = data[1]
+            time.sleep(random.randint(0, 7))
+            scraper = cloudscraper.create_scraper(interpreter='nodejs')
+            scraper.trust_env = False
+            scraper.mount(self.url, gate)
+            with scraper.get(url, timeout=10, headers=self.working_header, cookies=self.working_cookie) as response:
+                if response.status_code == 200:
+                    self.total_requests += 1
+                    self.logger.info(f'Successfully fetched -> {response.status_code}')
+                    datas = (response.json(), ea_id)
+                    return datas
+                else:
+                    self.logger.warning(f'Status Code {response.status_code} Captcha Triggered')
+                    return '0'
+        except Exception as E:
+            self.logger.warning(f'Error: {E}')
+            return '0'
+
+    async def fetch_prices(self):
+        try:
+            for i in range(0, 3):
+                hourly_urls = []
+                for p_data in self.id_data['ids']:
+                    hourly_urls.append((self.return_hourly_link(i, p_data["futbin_id"]), p_data["ea_id"]))
+                gate = await self.create_gateway()
+                ret = await self.create_cookie_token(gate)
+                while not ret:
+                    ret = await self.create_cookie_token(gate)
+                with ThreadPoolExecutor(max_workers=300) as executor:
                     loop = asyncio.get_event_loop()
                     tasks = [
-                        loop.run_in_executor(executor, self.fetch_g, url, i)
-                        for url in self.player_data['not_fetched_graph_urls'][i]
+                        loop.run_in_executor(executor, self.fetch_price, data_set, gate)
+                        for data_set in hourly_urls
                     ]
-                    for response in await asyncio.gather(*tasks):
-                        if response != '0':
-                            self.player_data['player_prices'].append(response.json())
+                gate.shutdown()
+                for data in await asyncio.gather(*tasks):
+                    if data != '0':
+                        price = data[0]
+                        ea_id = data[1]
+                        if price.get('ps') is not None:
+                            ps = price['ps']
+                            if self.hourly_data['prices'].get(ea_id) is None:
+                                key_value = {ea_id: {str(date.today() - timedelta(days=i)): ps}}
+                                self.hourly_data['prices'].update(key_value)
+                            else:
+                                key_value = {str(date.today() - timedelta(days=i)): ps}
+                                self.hourly_data['prices'][ea_id].update(key_value)
+                        else:
+                            pass
+            print('done fetching prices')
+            self.save_price_data()
+        except Exception as E:
+            self.logger.warning(E)
 
-    def async_get_prices(self):
+    async def run(self):
+        try:
+            await self.fetch_urls()
+            await self.fetch_ids()
+            await self.fetch_prices()
+        except Exception as E:
+            self.logger.warning(E)
+
+    def async_run(self):
         try:
             self.loop = asyncio.get_event_loop()
             self.loop.set_debug(True)
-            future = asyncio.ensure_future(self.fetch_graph())
+            future = asyncio.ensure_future(self.run())
             self.loop.run_until_complete(future)
         except Exception as E:
             self.logger.warning(E)
         finally:
             self.loop.close()
-
-
-
 
 
 if __name__ == "__main__":
-    pro = proxy_checker()
-    pro.async_get_proxies()
-    #pro.get_ids()
-    #pro.get_graph_url()
-    #pro.async_get_prices()
+    pro = PriceScraper()
+    pro.async_run()
+    print(pro.total_requests)
     print(pro.gateways)
-    pro.save_data()

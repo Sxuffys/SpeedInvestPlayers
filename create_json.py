@@ -47,26 +47,35 @@ def player_pager():
     for page in range(1, 58):
         data['not_fetched_page_urls'].append(f'https://www.futbin.com/players?page={page}&ps_price=0-5000&version=gold')
     data['fetched_page_urls'] = []
+    data["ids_and_names"] = []
     data['player_prices'] = []
     data['player_urls'] = []
     data['player_ids'] = []
     data['player_prices'] = []
     data['not_fetched_graph_urls'] = []
+
     save_json(data, 'json_data/player_urls.json')
 
-'''
-def creating_to_scrap():
+def hourly_json():
     data = {}
-    data['scrap_by_singer'] = []
-    data['simple_urls'] = []
-    data['scrap_singer_success'] = []
-    data['songs_details'] = []
-    data['albums_details'] = []
-    data['flag'] = 0
-    save_json(data, 'json_data/data_to_scrap.json')
-'''
+    data['prices'] = {}
+    save_json(data, 'json_data/hourly_prices.json')
+
+def min_json():
+    data = {}
+    data['min_max'] = {}
+    save_json(data, 'json_data/mins_maxs.json')
+
+def ids_json():
+    data = {}
+    data['ids'] = []
+    save_json(data, 'json_data/player_ids.json')
+
 
 if __name__ == "__main__":
     #creating_header()
     player_pager()
+    hourly_json()
+    ids_json()
+    min_json()
 

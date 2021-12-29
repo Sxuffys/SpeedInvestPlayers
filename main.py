@@ -221,20 +221,15 @@ urls = [
 
 fetched = []
 
-
-def fetch(url, gate):
+def fetch(url, gate, header, coockie):
     try:
-        header = return_header()
-        ua = header['user-agent']
         scraper1 = cloudscraper.create_scraper(interpreter='nodejs', delay=10)
         scraper1.trust_env = False
         scraper1.mount(url6, gate)
-        with scraper1.get(url, timeout=15, headers=header) as response:
+        with scraper1.get(url, timeout=15, headers=header, cookies=coockie) as response:
             if response.status_code == 200:
                 print('Gottcha')
-                urls.remove(url)
-                fetched.append(url)
-                return response
+                return response.json()
             else:
                 print('Captcha')
                 return '0'
@@ -243,56 +238,78 @@ def fetch(url, gate):
         return '0'
 
 
-#used = 0
-#gate = ApiGateway(url6)
-#gate.start()
-#for url1 in urls:
-#    if used <= 5:
-#        fetch(url1, gate)
-#        used += 1
-#    else:
-#        gate.shutdown()
-#        used = 0
-#        gate = ApiGateway(url6)
-#        gate.start()
-#        fetch(url1, gate)
+def create_gateway():
+    try:
+        gateway = ApiGateway(url6)
+        gateway.start()
+        return gateway
+    except Exception as E:
+        print(E)
+
+
+url10 = f'https://www.futbin.com/22/getTp?pid=389&type=player'
+
+
+async def create_cookie_token(gate):
+    try:
+        scraper = cloudscraper.create_scraper(interpreter='nodejs')
+        scraper.trust_env = False
+        scraper.mount(url6, gate)
+        header = return_header()
+        with scraper.get(url10, timeout=10, headers=header) as response:
+            time.sleep(random.randint(0, 1))
+            if response.status_code == 200:
+                working_cookie = response.cookies.get_dict()
+                working_header = header
+                return True, working_cookie, working_header
+            else:
+                return False, 0, 0
+    except Exception as E:
+        print(E)
 
 url = 'https://www.futbin.com/players?page=1'
-headers1 = {'Authority': 'www.futbin.com',
-'Method': 'GET',
-'Path': '/players?page=1',
-'Scheme': 'https',
-'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-'Accept-Encoding': 'gzip, deflate, br',
-'Accept-Language': 'es-ES,es;q=0.9',
-'Cache-Control': 'max-age=0',
-'Cookie': 'pc=true; ps=true; xbox=true; cookieconsent_status=dismiss; PHPSESSID=4ijtnhr6vacmjp1ppg9e57q280; theme_player=true; comments=true; platform=ps4',
-'Referer': 'https://www.futbin.com/',
-'Sec-CH-UA': '" Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"',
-'Sec-CH-UA-Mobile': '?0',
-'Sec-CH-UA-Platform': '"Windows"',
-'Sec-Fetch-Dest': 'document',
-'Sec-Fetch-Mode': 'navigate',
-'Sec-Fetch-Site': 'same-origin',
-'Sec-Fetch-User': '?1',
-'Upgrade-Insecure-Requests': '1',
-'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36'}
 
-gate = ApiGateway(url6)
-gate.start()
-scraper = cloudscraper.CloudScraper(delay=10)
-scraper.trust_env = False
-scraper.mount(url6, gate)
-r = scraper.get(url, timeout=10, headers=headers1)
-while r.status_code != 200:
-    if r.status_code == 200:
-        print(r.cookies.get_dict())
-    else:
-        r = scraper.get(url, timeout=10, headers=headers1)
-        time.sleep(1)
-        print('c')
-if r.status_code == 200:
-    print(r.cookies.get_dict())
+#u = "/22/player/389/timo-werner"
+#names_ids = []
+#s = url.split('/')
+#id = s[3]
+#name = s[4]
+#names_ids.append((id, name, url))
+#gate = create_gateway()
+#ret, header, coockie = await create_cookie_token(gate)
+#while not ret:
+#    ret = await create_cookie_token(gate)
+#res = fetch(url10, gate, header, coockie)
+#print(res)
+
+erg = {
+    "Timo": {
+    "day1": [1,2,3],
+        "day2": [2,1,3],
+        "day3": [7,4,1]
+        },
+    "Nico": {
+        "day1": [4,1,6],
+        "day2": [1,5,7],
+        "day3": [6,3,1]
+    }
+}
+brrr = {}
+print(brrr.get('prices'))
+d4 = {"day3": [1,2,3, 5]}
+print(erg['Nico'])
+erg['Nico'].update(d4)
+m = {"Mama": {
+    "day1": [4,3,6],
+    "da2": [1,5,7]
+} }
+erg.update(m)
+print(erg)
+
+t = {"ps":[[1640131200000,5269000],[1640134800000,5569600],[1640138400000,5337000],[1640142000000,5275600],[1640145600000,5300000],[1640149200000,5285000],[1640152800000,5240000],[1640156400000,5200000],[1640160000000,5212500],[1640163600000,5132500],[1640167200000,5296000],[1640170800000,5100000],[1640174400000,5100000],[1640178000000,5085000],[1640181600000,5060000]],"xbox":[[1640131200000,4580000],[1640134800000,4580000],[1640138400000,4493000],[1640142000000,4493000],[1640145600000,4493000],[1640149200000,4461667],[1640152800000,4446000],[1640156400000,4340000],[1640160000000,4267000],[1640163600000,4228000],[1640167200000,4121333],[1640170800000,3910667],[1640174400000,3816667],[1640178000000,4399000],[1640181600000,5409333]],"pc":[[1640134800000,8000000],[1640138400000,8000000],[1640142000000,8000000],[1640145600000,8000000],[1640149200000,8000000],[1640152800000,8000000],[1640156400000,8000000],[1640160000000,8000000],[1640163600000,8000000],[1640167200000,8000000]]}
+print(t['ps'])
+
+
 
 h = {'Date': 'Tue, 21 Dec 2021 14:51:23 GMT',
      'Content-Type': 'text/html; charset=UTF-8',
