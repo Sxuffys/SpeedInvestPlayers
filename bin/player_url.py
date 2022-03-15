@@ -13,16 +13,16 @@ from datetime import date, timedelta
 
 class Price:
     def __init__(self,
-                 header_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json',
+                 icon_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\Icon_prices.json',
                  player_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_urls.json',
                  hourly_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\hourly_prices.json',
                  id_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_ids.json'):
 
         self.hourly_file = hourly_file
-        self.header_file = header_file  # To save Location of where you have saved Json File
+        self.icon_file = icon_file  # To save Location of where you have saved Json File
         self.player_file = player_file
         self.id_file = id_file
-        self.header_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json', 'r'))
+        self.icon_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\Icon_prices.json', 'r'))
         self.player_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_urls.json', 'r'))
         self.id_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\player_ids.json', 'r'))
         self.hourly_data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\hourly_prices.json', 'r'))
@@ -65,6 +65,14 @@ class Price:
         }
         return header
 
+    def return_hourly_link(self, num, futbin_id):
+        if num == 0:
+            return f'https://www.futbin.com/22/playerGraph?type=today&year=22&player={futbin_id}&set_id='
+        elif num == 1:
+            return f'https://www.futbin.com/22/playerGraph?type=yesterday&year=22&player={futbin_id}&set_id='
+        else:
+            return f'https://www.futbin.com/22/playerGraph?type=da_yesterday&year=22&player={futbin_id}&set_id='
+
     # To save json data in disk
     def save_url_data(self):
         with open(self.player_file, 'w') as outfile:
@@ -77,6 +85,10 @@ class Price:
     def save_price_data(self):
         with open(self.hourly_file, 'w') as outfile:
             json.dump(self.hourly_data, outfile, indent=4)
+
+    def save_icon_data(self):
+        with open(self.icon_file, 'w') as outfile:
+            json.dump(self.icon_data, outfile, indent=4)
 
 
 class PriceScraper(Price):
@@ -117,7 +129,7 @@ class PriceScraper(Price):
         except Exception as E:
             self.logger.warning(E)
 
-    def fetch(self, url, gate):
+    def fetch_url(self, url, gate):
         try:
             time.sleep(random.randint(0, 5))
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
@@ -143,10 +155,10 @@ class PriceScraper(Price):
             ret = await self.create_cookie_token(gate)
             while not ret:
                 ret = await self.create_cookie_token(gate)
-            with ThreadPoolExecutor(max_workers=57) as executor:
+            with ThreadPoolExecutor(max_workers=11) as executor:
                 loop = asyncio.get_event_loop()
                 tasks = [
-                    loop.run_in_executor(executor, self.fetch, url, gate)
+                    loop.run_in_executor(executor, self.fetch_url, url, gate)
                     for url in self.player_data['not_fetched_page_urls']
                 ]
             gate.shutdown()
@@ -165,7 +177,7 @@ class PriceScraper(Price):
     def fetch_id(self, names_and_ids, gate, i):
         try:
             url = f'https://www.futbin.com/22/getTp?pid={names_and_ids[i][0]}&type=player'
-            time.sleep(random.randint(0, 5))
+            time.sleep(random.randint(0, 3))
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             scraper.trust_env = False
             scraper.mount(self.url, gate)
@@ -207,23 +219,19 @@ class PriceScraper(Price):
             gate.shutdown()
             for response in await asyncio.gather(*tasks):
                 if response != 0:
-                    self.id_data['ids'].append(response)
+                    if response not in self.id_data['icon_ids']:
+                    #self.id_data['ids'].append(response)
+                        self.id_data['icon_ids'].append(response)
         print('Done fetching ids')
         self.save_id_data()
-
-    def return_hourly_link(self, num, futbin_id):
-        if num == 0:
-            return f'https://www.futbin.com/22/playerGraph?type=today&year=22&player={futbin_id}&set_id='
-        elif num == 1:
-            return f'https://www.futbin.com/22/playerGraph?type=yesterday&year=22&player={futbin_id}&set_id='
-        else:
-            return f'https://www.futbin.com/22/playerGraph?type=da_yesterday&year=22&player={futbin_id}&set_id='
 
     def fetch_price(self, data, gate):
         try:
             url = data[0]
             ea_id = data[1]
-            time.sleep(random.randint(0, 7))
+            name = data[2]
+            futbin_id = data[3]
+            time.sleep(random.randint(0, 3))
             scraper = cloudscraper.create_scraper(interpreter='nodejs')
             scraper.trust_env = False
             scraper.mount(self.url, gate)
@@ -231,7 +239,7 @@ class PriceScraper(Price):
                 if response.status_code == 200:
                     self.total_requests += 1
                     self.logger.info(f'Successfully fetched -> {response.status_code}')
-                    datas = (response.json(), ea_id)
+                    datas = (response.json(), ea_id, name, futbin_id)
                     return datas
                 else:
                     self.logger.warning(f'Status Code {response.status_code} Captcha Triggered')
@@ -244,13 +252,13 @@ class PriceScraper(Price):
         try:
             for i in range(0, 3):
                 hourly_urls = []
-                for p_data in self.id_data['ids']:
-                    hourly_urls.append((self.return_hourly_link(i, p_data["futbin_id"]), p_data["ea_id"]))
+                for p_data in self.id_data['icon_ids']:
+                    hourly_urls.append((self.return_hourly_link(i, p_data["futbin_id"]), p_data["ea_id"], p_data["Name"], p_data["futbin_id"]))
                 gate = await self.create_gateway()
                 ret = await self.create_cookie_token(gate)
                 while not ret:
                     ret = await self.create_cookie_token(gate)
-                with ThreadPoolExecutor(max_workers=300) as executor:
+                with ThreadPoolExecutor(max_workers=150) as executor:
                     loop = asyncio.get_event_loop()
                     tasks = [
                         loop.run_in_executor(executor, self.fetch_price, data_set, gate)
@@ -261,26 +269,41 @@ class PriceScraper(Price):
                     if data != '0':
                         price = data[0]
                         ea_id = data[1]
+                        name = data[2]
+                        futbin_id = data[3]
+                        day = str(date.today() - timedelta(days=i)).replace("-", ".")
                         if price.get('ps') is not None:
                             ps = price['ps']
-                            if self.hourly_data['prices'].get(ea_id) is None:
-                                key_value = {ea_id: {str(date.today() - timedelta(days=i)): ps}}
-                                self.hourly_data['prices'].update(key_value)
-                            else:
-                                key_value = {str(date.today() - timedelta(days=i)): ps}
-                                self.hourly_data['prices'][ea_id].update(key_value)
+                            clean_ps = []
+                            for timestamp, price in ps:
+                                clean_ps.append(price)
+                            #if self.hourly_data['prices'].get(ea_id) is None:
+                            #    key_value = {ea_id: {str(date.today() - timedelta(days=i)): ps}}
+                            #    self.hourly_data['prices'].update(key_value)
+                            #else:
+                            #    key_value = {str(date.today() - timedelta(days=i)): ps}
+                            #    self.hourly_data['prices'][ea_id].update(key_value)
+                            dic_value = {"Ea ID": int(ea_id), "Futbin ID": futbin_id, "Name": name, "Day": day, "hourly": clean_ps, "min": None, "max": None, "avg": None}
+                            #if self.icon_data["data"].get(day) & self.icon_data["data"]["Futbin ID"] == futbin_id:
+                            #    self.icon_data["data"].update(dic_value)
+                            #else:
+                            self.icon_data.append(dic_value)
                         else:
                             pass
-            print('done fetching prices')
-            self.save_price_data()
+                print(f'done fetching prices for the {date.today() - timedelta(days=i)}')
+            #self.save_price_data()
+            self.save_icon_data()
         except Exception as E:
             self.logger.warning(E)
 
     async def run(self):
         try:
+            tik = time.perf_counter()
             await self.fetch_urls()
             await self.fetch_ids()
             await self.fetch_prices()
+            tok = time.perf_counter()
+            self.logger.info(f"Everything Done took {tok - tik} seconds.")
         except Exception as E:
             self.logger.warning(E)
 

@@ -8,7 +8,7 @@ def save_json(data, file_link='data.json'):
 
 def creating_header():
     data = {}
-    #data = json.load(open('data_header_details.json', 'r'))
+    #data = json.load(open('Icon_prices.json', 'r'))
     data['user_agents_links'] = [
         'https://developers.whatismybrowser.com/useragents/explore/operating_system_name/windows/',
         'https://developers.whatismybrowser.com/useragents/explore/operating_system_name/windows/2',
@@ -39,13 +39,14 @@ def creating_header():
     data['user_agents_scrap'] = []
     data['proxies'] = []
     data['working_proxies'] = []
-    save_json(data, 'json_data/data_header_details.json')
+    save_json(data, 'json_data/Icon_prices.json')
 
 def player_pager():
     data = {}
     data['not_fetched_page_urls'] = []
-    for page in range(1, 58):
-        data['not_fetched_page_urls'].append(f'https://www.futbin.com/players?page={page}&ps_price=0-5000&version=gold')
+    for page in range(1, 12):
+        #data['not_fetched_page_urls'].append(f'https://www.futbin.com/players?page={page}&ps_price=0-5000&version=gold')
+        data['not_fetched_page_urls'].append(f'https://www.futbin.com/players?page={page}&version=icons')
     data['fetched_page_urls'] = []
     data["ids_and_names"] = []
     data['player_prices'] = []
@@ -69,13 +70,14 @@ def min_json():
 def ids_json():
     data = {}
     data['ids'] = []
+    data['icon_ids'] = []
     save_json(data, 'json_data/player_ids.json')
 
 
 if __name__ == "__main__":
     #creating_header()
     player_pager()
-    hourly_json()
+    #hourly_json()
     ids_json()
-    min_json()
+
 

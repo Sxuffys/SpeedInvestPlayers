@@ -17,13 +17,13 @@ scraper.trust_env = False
 
 
 class Proxies:
-    def __init__(self, data_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json',
+    def __init__(self, data_file='C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\Icon_prices.json',
                  pubproxy='http://pubproxy.com/api/proxy?port=8080,3128,3129,51200,8811,8089,33746,8880,32302,80,8118,8081',
                  proxyscrape='https://api.proxyscrape.com/?request=getproxies&proxytype=http&timeout=10000&country=all&ssl=all&anonymity=elite',
                  free_p_l='https://free-proxy-list.net/'):
 
         self.data_file = data_file  # To save Location of where you have saved Json File
-        self.data = json.load(open('C:\\Users\\Timo\\PycharmProjects\\SpeedInvestPlayers\\json_data\\data_header_details.json', 'r'))
+        self.data = json.load(open('/json_data/Icon_prices.json', 'r'))
         self.pubproxy = pubproxy
         self.proxyscrape = proxyscrape
         self.free_p_l = free_p_l

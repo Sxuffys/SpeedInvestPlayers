@@ -282,32 +282,29 @@ url = 'https://www.futbin.com/players?page=1'
 #res = fetch(url10, gate, header, coockie)
 #print(res)
 
-erg = {
-    "Timo": {
-    "day1": [1,2,3],
-        "day2": [2,1,3],
-        "day3": [7,4,1]
-        },
-    "Nico": {
-        "day1": [4,1,6],
-        "day2": [1,5,7],
-        "day3": [6,3,1]
-    }
-}
-brrr = {}
-print(brrr.get('prices'))
-d4 = {"day3": [1,2,3, 5]}
-print(erg['Nico'])
-erg['Nico'].update(d4)
-m = {"Mama": {
-    "day1": [4,3,6],
-    "da2": [1,5,7]
-} }
-erg.update(m)
-print(erg)
+import pandas as pd
 
-t = {"ps":[[1640131200000,5269000],[1640134800000,5569600],[1640138400000,5337000],[1640142000000,5275600],[1640145600000,5300000],[1640149200000,5285000],[1640152800000,5240000],[1640156400000,5200000],[1640160000000,5212500],[1640163600000,5132500],[1640167200000,5296000],[1640170800000,5100000],[1640174400000,5100000],[1640178000000,5085000],[1640181600000,5060000]],"xbox":[[1640131200000,4580000],[1640134800000,4580000],[1640138400000,4493000],[1640142000000,4493000],[1640145600000,4493000],[1640149200000,4461667],[1640152800000,4446000],[1640156400000,4340000],[1640160000000,4267000],[1640163600000,4228000],[1640167200000,4121333],[1640170800000,3910667],[1640174400000,3816667],[1640178000000,4399000],[1640181600000,5409333]],"pc":[[1640134800000,8000000],[1640138400000,8000000],[1640142000000,8000000],[1640145600000,8000000],[1640149200000,8000000],[1640152800000,8000000],[1640156400000,8000000],[1640160000000,8000000],[1640163600000,8000000],[1640167200000,8000000]]}
-print(t['ps'])
+df = pd.DataFrame({'speed': [0,1600,0,1600,1600,1600,0,0,0]})
+
+# Check if values are above or below a threshold
+threshold = 1500
+df['over_threshold'] = df['speed'] > threshold
+
+# Compare to the previous row
+# If over_threshold has changed,
+# then you either went above or fell below the threshold
+df['changed'] = df['over_threshold'] != df['over_threshold'].shift(1)
+
+# First one has, by definition, has no previous value, so we should omit it
+df = df.loc[1:,]
+
+# Count how many times a row is newly above or below threshold
+counts = df.loc[df['changed']].groupby('over_threshold').agg({'changed': 'count'})
+print(counts)
+counts.index = ["Down", "Up"]
+counts.columns = ["Count"]
+print(counts)
+
 
 
 
